@@ -1,0 +1,88 @@
+# CL参数优化
+
+base_config: ./
+base_expid: FCN_criteo_private_ad_cvr_v4_050_050_maskmerge_hyper
+dataset_id: criteo_private_ad_cvr_v4_050_050_maskmerge
+
+# 数据集配置
+dataset_config:
+    criteo_private_ad_cvr_v4_050_050_maskmerge:
+        data_format: parquet
+        data_root: /work/gm85/m85000/FuxiCTR/data/mask_merge/
+        feature_cols:
+            # 共计使用 18 个不受限制的非个性化 + 32 个受限制的个性化特征  = 50 特征
+            - { active: false, dtype: str, name: id, type: categorical }
+            # 非个性化分类特征 Ad + context: 13 int + 1 seq + 4 float = 18 features
+            # contextual features 8 + kv ad feature 8
+            - active: true
+              dtype: int
+              name: [ campaign_id, display_order, publisher_id, features_ctx_not_constrained_0, features_ctx_not_constrained_1, features_ctx_not_constrained_4, features_ctx_not_constrained_5, features_ctx_not_constrained_6, features_ctx_not_constrained_7, features_kv_not_constrained_1, features_kv_not_constrained_2, features_kv_not_constrained_3, features_kv_not_constrained_8 ]
+              type: categorical
+            - { active: true, dtype: str, max_len: 10, name: features_ctx_not_constrained_2, padding: pre,
+                splitter: ^, type: sequence }
+            - active: true
+              dtype: float
+              name: [ features_kv_not_constrained_5, features_kv_not_constrained_6, features_kv_not_constrained_7, features_ctx_not_constrained_3 ]
+              type: categorical
+            # Ad-browser-user 个性化分类特征 - 1 str + 1 int + 30 float = 32 features
+            - {active: true, dtype: str, name: user_id, type: categorical}
+            - active: true
+              dtype: int
+              name: [ features_kv_bits_constrained_1 ]
+              type: categorical
+            - active: true
+              dtype: float
+              name: [ features_browser_bits_constrained_0, features_browser_bits_constrained_10, features_browser_bits_constrained_2, features_browser_bits_constrained_3, features_browser_bits_constrained_4, features_browser_bits_constrained_7, features_browser_bits_constrained_9, features_kv_bits_constrained_0, features_kv_bits_constrained_11, features_kv_bits_constrained_12, features_kv_bits_constrained_13, features_kv_bits_constrained_15, features_kv_bits_constrained_17, features_kv_bits_constrained_19, features_kv_bits_constrained_2, features_kv_bits_constrained_20, features_kv_bits_constrained_21, features_kv_bits_constrained_22, features_kv_bits_constrained_23, features_kv_bits_constrained_24, features_kv_bits_constrained_25, features_kv_bits_constrained_27, features_kv_bits_constrained_28, features_kv_bits_constrained_29, features_kv_bits_constrained_30, features_kv_bits_constrained_4, features_kv_bits_constrained_5, features_kv_bits_constrained_7, features_kv_bits_constrained_8, features_kv_bits_constrained_9 ]
+              type: categorical
+        feature_group_id: is_personalization
+        label_col: { dtype: float, name: is_click_landed }  # 修正：实际为Int32
+        min_categr_count: 10
+        test_data: /scratch/dliu2/FuxiCTR/datasets/CriteoPrivateAdCVRProcessed/test.parquet
+        train_data: /scratch/dliu2/FuxiCTR/datasets/CriteoPrivateAdCVRProcessed/train.parquet
+        valid_data: /scratch/dliu2/FuxiCTR/datasets/CriteoPrivateAdCVRProcessed/valid.parquet
+# 模型基础配置
+model_config:
+    FCN_criteo_private_ad_cvr_v4_050_050_maskmerge_hyper:
+        model: DCNv3
+        model_id: FCN_criteo_private_ad_cvr_v4_050_050_maskmerge_hyper
+        model_root: /work/gm85/m85000/FuxiCTR/checkpoints/FCN/FCN_criteo_private_ad_cvr_v4_050_050_maskmerge_hyper
+        dataset_id: criteo_private_ad_cvr_v4_050_050_maskmerge
+        debug_mode: false
+        metrics: [logloss, AUC]
+        monitor_mode: max
+        optimizer: adam
+        loss: binary_crossentropy
+        shuffle: true
+        task: binary_classification
+        early_stop_patience: 1
+        epochs: 100
+        learning_rate: 0.001
+        batch_size: 10000
+        seed: 2019
+        verbose: 0
+        save_best_only: true
+        monitor: {AUC: 1}
+        layer_norm: true
+        batch_norm: true
+        embedding_regularizer: 0
+        net_regularizer: 0
+        embedding_dim: 16
+        num_deep_cross_layers: 3
+        num_shallow_cross_layers: 4
+        deep_net_dropout: 0.1
+        shallow_net_dropout: 0.1
+        num_heads: 8
+        low_memory: true
+        save_checkpoints: true
+        reduce_lr_on_plateau: false
+
+# personalization_feature_list: [ user_id,features_kv_bits_constrained_1,features_browser_bits_constrained_0,features_browser_bits_constrained_10,features_browser_bits_constrained_2,features_browser_bits_constrained_3,features_browser_bits_constrained_4,features_browser_bits_constrained_7,features_browser_bits_constrained_9,features_kv_bits_constrained_0,features_kv_bits_constrained_11,features_kv_bits_constrained_12,features_kv_bits_constrained_13,features_kv_bits_constrained_15,features_kv_bits_constrained_17,features_kv_bits_constrained_19,features_kv_bits_constrained_2,features_kv_bits_constrained_20,features_kv_bits_constrained_21,features_kv_bits_constrained_22,features_kv_bits_constrained_23,features_kv_bits_constrained_24,features_kv_bits_constrained_25,features_kv_bits_constrained_27,features_kv_bits_constrained_28,features_kv_bits_constrained_29,features_kv_bits_constrained_30,features_kv_bits_constrained_4,features_kv_bits_constrained_5,features_kv_bits_constrained_7,features_kv_bits_constrained_8,features_kv_bits_constrained_9 ]
+
+tuner_space:
+    embedding_regularizer: [1.0e-05]
+    embedding_dim: [16]
+    num_deep_cross_layers: [4]
+    num_shallow_cross_layers: [3]
+    num_heads: [2]
+    seed: [42]
+    save_checkpoints: [True]

@@ -1,0 +1,146 @@
+# CL参数优化
+
+base_config: ./
+base_expid: FINAL_FINAL_DT_taobaoad_x1_050_050_maskmerge_hyper
+dataset_id: taobaoad_x1_050_050_maskmerge
+
+# 数据集配置
+dataset_config:
+    taobaoad_x1_050_050_maskmerge_dt:
+        data_format: parquet
+        data_root: /scratch/dliu2/FuxiCTR/data/mask_merge/
+        feature_cols:
+          # 非个性化分类特征: 1 float + 7 categorical = 8 features
+          - {active: true, dtype: float, name: price, type: numeric}
+          - active: true
+            dtype: str
+            name: [adgroup_id, cate_id, campaign_id, customer, brand, pid, btag]
+            type: categorical
+          # 个性化分类特征: 9 int + 3 sequence = 12 features
+          - active: true
+            dtype: int
+            fill_na: 0
+            name: [userid, cms_segid, cms_group_id, final_gender_code, age_level, pvalue_level, shopping_level, occupation, new_user_class_level]
+            type: categorical
+          - {active: true, dtype: str, max_len: 50, name: cate_his, padding: pre, share_embedding: cate_id,
+              splitter: ^, type: sequence}
+          - {active: true, dtype: str, max_len: 50, name: brand_his, padding: pre, share_embedding: brand,
+              splitter: ^, type: sequence}
+          - {active: true, dtype: str, max_len: 50, name: btag_his, padding: pre, share_embedding: btag,
+              splitter: ^, type: sequence}
+        label_col: {dtype: float, name: clk}
+        feature_group_id: is_personalization
+        min_categr_count: 10
+  #      test_data:
+        train_data:
+        valid_data:
+    taobaoad_x1_050_050_maskmerge:
+        data_format: parquet
+        data_root: /scratch/dliu2/FuxiCTR/data/mask_merge/
+        feature_cols:
+            - {active: true, dtype: int, name: group_id, preprocess: copy_from(userid), remap: false,
+              type: meta}
+            -   active: true
+                dtype: str
+                name: [adgroup_id, cate_id, campaign_id, customer, brand, pid, btag]
+                type: categorical
+            -   active: true
+                dtype: int
+                fill_na: 0
+                name: [userid, cms_segid, cms_group_id, final_gender_code, age_level, pvalue_level,
+                  shopping_level, occupation, new_user_class_level]
+                type: categorical
+            - {active: true, dtype: float, name: price, type: numeric}
+            - {active: true, dtype: str, max_len: 50, name: cate_his, padding: pre, share_embedding: cate_id,
+               splitter: ^, type: sequence}
+            - {active: true, dtype: str, max_len: 50, name: brand_his, padding: pre, share_embedding: brand,
+               splitter: ^, type: sequence}
+            - {active: true, dtype: str, max_len: 50, name: btag_his, padding: pre, share_embedding: btag,
+               splitter: ^, type: sequence}
+        label_col: {dtype: float, name: clk}
+        feature_group_id: is_personalization
+        min_categr_count: 10
+        test_data: /scratch/dliu2/FuxiCTR/datasets/TaobaoAd/processed/test.csv
+        train_data: /scratch/dliu2/FuxiCTR/datasets/TaobaoAd/processed/train.csv
+        valid_data: /scratch/dliu2/FuxiCTR/datasets/TaobaoAd/processed/valid.csv
+# 模型基础配置
+model_config:
+    FINAL_FINAL_DT_taobaoad_x1_050_050_maskmerge_hyper:
+        model: DualTowerModel
+        model_id: FINAL_FINAL_DT_taobaoad_maskmerge_hyper
+        model_root: /scratch/dliu2/FuxiCTR/slurm_logs/FINAL_FINAL_DT_taobaoad_maskmerge_hyper/
+        dataset_id: taobaoad_x1_050_050_maskmerge
+        debug_mode: false
+        metrics: [logloss, AUC]
+        monitor: {AUC: 1}
+        monitor_mode: max
+        optimizer: adam
+        loss: binary_crossentropy
+        shuffle: true
+        task: binary_classification
+        early_stop_patience: 2
+        epochs: 100
+        learning_rate: 0.001
+        batch_size: 10000
+        seed: 2019
+        verbose: 0
+        save_best_only: true
+        embedding_regularizer: 0.05
+        personalization_field: is_personalization
+        use_tower_specific_monitoring: true        # 启用分塔监控
+        personalized_monitor_metric: "AUC_group_1.0"    # 个性化塔监控指标
+        non_personalized_monitor_metric: "AUC_group_2.0" # 非个性化塔监控指标
+        tower_patience: 2                         # 分塔早停耐心值
+        save_tower_models: true                   # 分别保存塔模型
+        personalization_feature_list: [ userid, cate_his, brand_his, btag_his, age_level, shopping_level, cms_group_id, final_gender_code, cms_segid, occupation, pvalue_level, new_user_class_level ]
+        net_regularizer: 0
+        personalized_model_type: FinalNet
+        personalized_model_params:
+          embedding_dim: 32
+          block_type: 2B
+        non_personalized_model_type: FinalNet
+        non_personalized_model_params:
+          embedding_dim: 32
+          block_type: 2B
+        cl_loss_weight: 0.0  # CL总损失权重
+        save_checkpoints: true
+
+tuner_space:
+    personalized_model_params:
+        - embedding_dim: 32
+          block_type: 1B
+          block1_dropout: 0.2
+          block1_hidden_activations: ReLU
+          block1_hidden_units: [800]
+          block2_dropout: 0.3
+          block2_hidden_activations: ReLU
+          block2_hidden_units: [800, 800]
+    non_personalized_model_params:
+        - embedding_dim: 32
+          block_type: 2B
+          block1_dropout: 0.2
+          block1_hidden_activations: ReLU
+          block1_hidden_units: [800]
+          block2_dropout: 0.3
+          block2_hidden_activations: ReLU
+          block2_hidden_units: [800, 800]
+        - embedding_dim: 32
+          block_type: 1B
+          block1_dropout: 0.2
+          block1_hidden_activations: ReLU
+          block1_hidden_units: [800]
+        - embedding_dim: 16
+          block_type: 2B
+          block1_dropout: 0.2
+          block1_hidden_activations: ReLU
+          block1_hidden_units: [800]
+          block2_dropout: 0.3
+          block2_hidden_activations: ReLU
+          block2_hidden_units: [800, 800]
+        - embedding_dim: 16
+          block_type: 1B
+          block1_dropout: 0.2
+          block1_hidden_activations: ReLU
+          block1_hidden_units: [800]
+    seed: [2019, 42, 2025]
+    dataset_id: [taobaoad_x1_050_050_maskmerge]

@@ -1,0 +1,161 @@
+# CL参数优化
+
+base_config: ./
+base_expid: PNN_PNN_DT_CL_seq_criteo_private_ad_cvr_per_mask_020_mixed_01_1893e8ce
+dataset_id: criteo_private_ad_cvr_per_mask_020_mixed
+
+# 数据集配置
+dataset_config:
+    criteo_private_ad_cvr_per_mask_020_mixed:
+        data_format: parquet
+        data_root: /scratch/dliu2/FuxiCTR/data/Criteo
+    #    data_block_size: 40960000
+    #    streaming: true
+    #    buffer_size: 40960000
+        # 元数据特征 - 隐私标识符
+        feature_cols:
+    #    - {active: true, dtype: int, name: group_id, preprocess: copy_from(is_personalization), remap: false, type: meta}
+        # 非个性化分类特征 (数据为int但唯一值有限)
+        - active: true
+          dtype: int
+          name: [features_ctx_not_constrained_0, features_ctx_not_constrained_6]
+          type: categorical
+          description: "上下文分类特征，不包含个人信息"
+        # 非个性化数值特征
+        - active: true
+          dtype: float
+          name: [features_ctx_not_constrained_3]
+          type: categorical
+          description: "上下文数值特征，不包含个人信息"
+        # 出版商ID - 数值型但应视为分类特征
+        - active: true
+          dtype: float
+          name: [publisher_id]
+          type: categorical
+          description: "出版商标识符"
+        # 其他非个性化数值特征 (mixed types)
+        - active: true
+          dtype: int
+          name: [features_kv_not_constrained_3]
+          type: categorical
+          description: "KV数值型分类特征"
+        - active: true
+          dtype: float
+          name: [features_kv_not_constrained_4, features_kv_not_constrained_5, features_kv_not_constrained_6, features_kv_not_constrained_7]
+          type: categorical
+          description: "KV数值型特征"
+        - active: true
+          dtype: int
+          name: [display_order]
+          type: categorical
+          description: "显示顺序"
+        # 个性化约束特征 - 浏览器特征 (全部为Float64，但应视为分类特征)
+        - active: true
+          dtype: float
+          name: [features_browser_bits_constrained_0, features_browser_bits_constrained_2, features_browser_bits_constrained_3, features_browser_bits_constrained_4, features_browser_bits_constrained_5, features_browser_bits_constrained_6, features_browser_bits_constrained_7, features_browser_bits_constrained_8, features_browser_bits_constrained_9, features_browser_bits_constrained_10]
+          type: categorical
+          vocab_size: 4096  # 12位限制 = 2^12
+          description: "浏览器约束特征，12位隐私保护限制"
+        # 个性化约束特征 - KV特征 (mixed types，但都应视为分类特征)
+        - active: true
+          dtype: float
+          name: [features_kv_bits_constrained_0, features_kv_bits_constrained_2, features_kv_bits_constrained_4, features_kv_bits_constrained_6, features_kv_bits_constrained_7, features_kv_bits_constrained_8, features_kv_bits_constrained_9, features_kv_bits_constrained_10, features_kv_bits_constrained_11, features_kv_bits_constrained_12, features_kv_bits_constrained_13, features_kv_bits_constrained_15, features_kv_bits_constrained_16, features_kv_bits_constrained_18, features_kv_bits_constrained_19, features_kv_bits_constrained_20, features_kv_bits_constrained_21, features_kv_bits_constrained_22, features_kv_bits_constrained_24]
+          type: categorical
+          vocab_size: 4096  # 12位限制 = 2^12
+          description: "KV服务器约束特征（Float64类型），12位隐私保护限制"
+    #    - active: false
+    #      dtype: int
+    #      name: [features_kv_bits_constrained_25, features_kv_bits_constrained_28, features_kv_bits_constrained_29, features_kv_bits_constrained_30, features_browser_bits_constrained_1, features_kv_bits_constrained_23]
+    #      type: categorical
+    #      vocab_size: 4096  # 12位限制 = 2^12
+    #      description: "高 vocab 特征"
+        - active: true
+          dtype: int
+          name: [features_kv_bits_constrained_1, features_kv_bits_constrained_3, features_kv_bits_constrained_26]
+          type: categorical
+          vocab_size: 4096  # 12位限制 = 2^12
+          description: "KV服务器约束特征（Int64类型），12位隐私保护限制"
+        # 隐私标识符
+        - active: true
+          dtype: int
+          name: is_personalization
+          type: categorical
+          vocab_size: 2
+          description: "隐私偏好标识符 (0=隐私保护用户, 1=允许个性化用户)"
+        feature_group_id: is_personalization
+        label_col: {dtype: float, name: is_click_landed}  # 修正：实际为Int32
+        min_categr_count: 10
+        test_data: /scratch/dliu2/FuxiCTR/datasets/CriteoPrivateAdCVR/test.parquet
+        train_data: /scratch/dliu2/FuxiCTR/datasets/CriteoPrivateAdCVR/train.parquet
+        valid_data: /scratch/dliu2/FuxiCTR/datasets/CriteoPrivateAdCVR/valid.parquet
+
+# 模型基础配置
+model_config:
+    PNN_PNN_DT_CL_seq_criteo_private_ad_cvr_per_mask_020_mixed_01_1893e8ce:
+        model: DualTowerCL
+        model_id: PNNDT_criteo_private_ad_cvr_per_mask_020_mixed
+        model_root: /scratch/dliu2/FuxiCTR/slurm_logs/PNNDT_criteo_private_ad_cvr_per_mask_020_mixed/
+        dataset_id: criteo_private_ad_cvr_per_mask_020_mixed
+        debug_mode: false
+        metrics: [logloss, AUC]
+        monitor_mode: max
+        optimizer: adam
+        loss: binary_crossentropy
+        shuffle: true
+        task: binary_classification
+        early_stop_patience: 2
+        epochs: 100
+        learning_rate: 0.001
+        batch_size: 10000
+        seed: 2019
+        verbose: 0
+        workers: 3
+        save_best_only: true
+        use_tower_specific_monitoring: true        # 启用分塔监控
+        personalized_monitor_metric: "AUC_group_1.0"    # 个性化塔监控指标
+        non_personalized_monitor_metric: "AUC_group_2.0" # 非个性化塔监控指标
+        tower_patience: 2                         # 分塔早停耐心值
+        save_tower_models: true                   # 分别保存塔模型
+        personalization_feature_list: ['features_kv_bits_constrained_0', 'features_kv_bits_constrained_1', 'features_kv_bits_constrained_2', 'features_kv_bits_constrained_3', 'features_kv_bits_constrained_4', 'features_kv_bits_constrained_5', 'features_kv_bits_constrained_6', 'features_kv_bits_constrained_7', 'features_kv_bits_constrained_8', 'features_kv_bits_constrained_9', 'features_kv_bits_constrained_10', 'features_kv_bits_constrained_11', 'features_kv_bits_constrained_12', 'features_kv_bits_constrained_13', 'features_kv_bits_constrained_14', 'features_kv_bits_constrained_15', 'features_kv_bits_constrained_16', 'features_kv_bits_constrained_17', 'features_kv_bits_constrained_18', 'features_kv_bits_constrained_19', 'features_kv_bits_constrained_20', 'features_kv_bits_constrained_21', 'features_kv_bits_constrained_22', 'features_kv_bits_constrained_23', 'features_kv_bits_constrained_24', 'features_kv_bits_constrained_25', 'features_kv_bits_constrained_26', 'features_kv_bits_constrained_27', 'features_kv_bits_constrained_28', 'features_kv_bits_constrained_29', 'features_kv_bits_constrained_30', 'features_browser_bits_constrained_0', 'features_browser_bits_constrained_1', 'features_browser_bits_constrained_2', 'features_browser_bits_constrained_3', 'features_browser_bits_constrained_4', 'features_browser_bits_constrained_5', 'features_browser_bits_constrained_6', 'features_browser_bits_constrained_7', 'features_browser_bits_constrained_8', 'features_browser_bits_constrained_9', 'features_browser_bits_constrained_10', 'features_browser_bits_constrained_11', 'features_browser_bits_constrained_12', 'features_browser_bits_constrained_13', 'features_browser_bits_constrained_14']
+        personalization_field: is_personalization
+        personalized_model_type: PNN
+        personalized_model_params:
+            batch_norm: false
+            embedding_dim: 16
+            embedding_dropout: 0
+            embedding_regularizer: 1.0e-05
+            hidden_activations: relu
+            hidden_units: [1000, 1000]
+            monitor: {AUC: 1}
+            net_dropout: 0.2
+            net_regularizer: 0
+        non_personalized_model_type: PNN
+        non_personalized_model_params:
+            batch_norm: false
+            embedding_dim: 16
+            embedding_dropout: 0
+            embedding_regularizer: 1.0e-05
+            hidden_activations: relu
+            hidden_units: [1000, 1000]
+            monitor: {AUC: 1}
+            net_dropout: 0.2
+            net_regularizer: 0
+        training_mode: "parallel"  # 并行训练模式
+        cl_loss_weight: 2.0  # CL总损失权重
+        # CL损失组件权重
+        knowledge_distillation_loss_weight: 1.0  # 知识蒸馏损失（核心）
+        group_aware_loss_weight: 0.0  # 组感知损失（针对非个性化用户优化）
+        feature_alignment_loss_weight: 0.0  # 特征对齐损失（可选）
+        field_uniformity_loss_weight: 0.0   # 字段均匀性损失（可选）
+        distance_loss_weight: 0.0  # 距离损失（备用）
+        temperature: 4.0  # 知识蒸馏温度参数
+        # === 特征级对比学习配置 ===
+        use_feature_level_cl: False  # 是否启用特征级CL
+
+tuner_space:
+    # 核心参数搜索
+    cl_loss_weight: [1.0, 2.0]
+    knowledge_distillation_loss_weight: [0.0, 0.5, 1.0]
+#    group_aware_loss_weight: [0.0, 0.5, 1.0]
+    field_uniformity_loss_weight: [0.0, 0.5, 1.0]
+    distance_loss_weight: [0.0, 0.5, 1.0]

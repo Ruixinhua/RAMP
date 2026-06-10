@@ -1,0 +1,110 @@
+# CL参数优化
+
+base_config: ./
+base_expid: FINAL_FINAL_DT_avazu_x4_050_050_maskmerge_hyper
+dataset_id: avazu_x4_050_050_maskmerge
+
+# 数据集配置
+dataset_config:
+    avazu_x4_050_050_maskmerge:
+        data_format: parquet
+    #        data_root: /scratch/dliu2/FuxiCTR/data/Avazu/
+        data_root: /work/gm85/m85000/FuxiCTR/data/mask_merge/
+        feature_cols:
+        - {active: false, dtype: str, name: id, type: categorical}
+        - {active: true, dtype: str, name: hour, preprocess: convert_hour, type: categorical}
+        -   active: true
+            dtype: str
+            name: [C1, banner_pos, site_id, site_domain, site_category, app_id, app_domain,
+                app_category, device_id, device_ip, device_model, device_type, device_conn_type,
+                C14, C15, C16, C17, C18, C19, C20, C21]
+            type: categorical
+        - {active: true, dtype: str, name: weekday, preprocess: convert_weekday, type: categorical}
+        - {active: true, dtype: str, name: weekend, preprocess: convert_weekend, type: categorical}
+        label_col: {dtype: float, name: click}
+        feature_group_id: is_personalization
+        min_categr_count: 2
+        test_data: /scratch/dliu2/FuxiCTR/datasets/Avazu/Avazu_x4/test.csv
+        train_data: /scratch/dliu2/FuxiCTR/datasets/Avazu/Avazu_x4/train.csv
+        valid_data: /scratch/dliu2/FuxiCTR/datasets/Avazu/Avazu_x4/valid.csv
+
+# 模型基础配置
+model_config:
+    FINAL_FINAL_DT_avazu_x4_050_050_maskmerge_hyper:
+        model: DualTowerModel
+        model_id: FINAL_FINAL_DT_avazu_maskmerge_hyper
+#        model_root: /scratch/dliu2/FuxiCTR/slurm_logs/FINAL_avazu/
+        model_root: /work/gm85/m85000/FuxiCTR/slurm_logs/FINAL_FINAL_DT_avazu_maskmerge_hyper/
+        dataset_id: avazu_x4_050_050_maskmerge
+        debug_mode: false
+        metrics: [logloss, AUC]
+        monitor_mode: max
+        optimizer: adam
+        loss: binary_crossentropy
+        shuffle: true
+        task: binary_classification
+        early_stop_patience: 2
+        epochs: 100
+        learning_rate: 0.001
+        batch_size: 10000
+        seed: 2019
+        verbose: 0
+        save_best_only: true
+        embedding_regularizer: 1.0e-05
+        personalization_field: is_personalization
+        use_tower_specific_monitoring: true        # 启用分塔监控
+        personalized_monitor_metric: "AUC_group_1.0"    # 个性化塔监控指标
+        non_personalized_monitor_metric: "AUC_group_2.0" # 非个性化塔监控指标
+        tower_patience: 2                         # 分塔早停耐心值
+        save_tower_models: true                   # 分别保存塔模型
+        personalization_feature_list: [ device_ip, device_id, device_model, device_type, device_conn_type ]
+        net_regularizer: 0
+        personalized_model_type: FinalNet
+        personalized_model_params:
+          embedding_dim: 32
+          block_type: 2B
+        non_personalized_model_type: FinalNet
+        non_personalized_model_params:
+          embedding_dim: 32
+          block_type: 2B
+        cl_loss_weight: 0.0  # CL总损失权重
+        save_checkpoints: true
+
+tuner_space:
+    personalized_model_params:
+        - embedding_dim: 32
+          block_type: 1B
+          block1_dropout: 0.2
+          block1_hidden_activations: ReLU
+          block1_hidden_units: [800]
+          block2_dropout: 0.3
+          block2_hidden_activations: ReLU
+          block2_hidden_units: [800, 800]
+    non_personalized_model_params:
+        - embedding_dim: 32
+          block_type: 2B
+          block1_dropout: 0.2
+          block1_hidden_activations: ReLU
+          block1_hidden_units: [800]
+          block2_dropout: 0.3
+          block2_hidden_activations: ReLU
+          block2_hidden_units: [800, 800]
+        - embedding_dim: 32
+          block_type: 1B
+          block1_dropout: 0.2
+          block1_hidden_activations: ReLU
+          block1_hidden_units: [800]
+        - embedding_dim: 16
+          block_type: 2B
+          block1_dropout: 0.2
+          block1_hidden_activations: ReLU
+          block1_hidden_units: [800]
+          block2_dropout: 0.3
+          block2_hidden_activations: ReLU
+          block2_hidden_units: [800, 800]
+        - embedding_dim: 16
+          block_type: 1B
+          block1_dropout: 0.2
+          block1_hidden_activations: ReLU
+          block1_hidden_units: [800]
+    seed: [2019]

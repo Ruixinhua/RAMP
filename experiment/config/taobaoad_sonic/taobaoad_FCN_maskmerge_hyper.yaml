@@ -1,0 +1,77 @@
+# CL参数优化
+
+base_config: ./
+base_expid: FCN_taobaoad_x1_050_050_maskmerge_hyper
+dataset_id: taobaoad_x1_050_050_maskmerge
+
+# 数据集配置
+dataset_config:
+  taobaoad_x1_050_050_maskmerge:
+      data_format: parquet
+      data_root: /scratch/dliu2/FuxiCTR/data/mask_merge/
+      feature_cols:
+      - {active: true, dtype: int, name: group_id, preprocess: copy_from(userid), remap: false,
+          type: meta}
+      -   active: true
+          dtype: str
+          name: [adgroup_id, cate_id, campaign_id, customer, brand, pid, btag]
+          type: categorical
+      -   active: true
+          dtype: int
+          fill_na: 0
+          name: [userid, cms_segid, cms_group_id, final_gender_code, age_level, pvalue_level,
+              shopping_level, occupation, new_user_class_level]
+          type: categorical
+      - {active: true, dtype: float, name: price, type: numeric}
+      - {active: true, dtype: str, max_len: 50, name: cate_his, padding: pre, share_embedding: cate_id,
+          splitter: ^, type: sequence}
+      - {active: true, dtype: str, max_len: 50, name: brand_his, padding: pre, share_embedding: brand,
+          splitter: ^, type: sequence}
+      - {active: true, dtype: str, max_len: 50, name: btag_his, padding: pre, share_embedding: btag,
+          splitter: ^, type: sequence}
+      label_col: {dtype: float, name: clk}
+      feature_group_id: is_personalization
+      min_categr_count: 10
+      test_data: /scratch/dliu2/FuxiCTR/datasets/TaobaoAd/processed/test.csv
+      train_data: /scratch/dliu2/FuxiCTR/datasets/TaobaoAd/processed/train.csv
+      valid_data: /scratch/dliu2/FuxiCTR/datasets/TaobaoAd/processed/valid.csv
+# 模型基础配置
+model_config:
+    FCN_taobaoad_x1_050_050_maskmerge_hyper:
+        model: DCNv3
+        model_id: FCN_taobaoad_maskmerge_hyper
+        model_root: /scratch/dliu2/FuxiCTR/slurm_logs/FCN_taobaoad_maskmerge_hyper/
+        dataset_id: taobaoad_x1_050_050_maskmerge
+        debug_mode: false
+        metrics: [AUC, logloss]
+        monitor_mode: max
+        optimizer: adam
+        loss: binary_crossentropy
+        shuffle: true
+        task: binary_classification
+        early_stop_patience: 2
+        epochs: 100
+        save_best_only: true
+        verbose: 0
+        monitor: {AUC: 1}
+        learning_rate: 0.001
+        net_regularizer: 0
+        embedding_dim: 16
+        num_heads: 4
+        batch_size: 10000
+        embedding_regularizer: 5.0e-06
+        num_deep_cross_layers: 6
+        num_shallow_cross_layers: 4
+        seed: 2019
+        deep_net_dropout: 0.1
+        shallow_net_dropout: 0.1
+        layer_norm: true
+        batch_norm: true
+
+tuner_space:
+    embedding_dim: [16, 32]
+    num_deep_cross_layers: [4]
+    num_shallow_cross_layers: [4]
+    embedding_regularizer: [0.05]
+    num_heads: [1, 2]
+    seed: [2019, 2025, 42]

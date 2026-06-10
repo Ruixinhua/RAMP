@@ -1,0 +1,104 @@
+# CL参数优化
+
+base_config: ./
+base_expid: FCN_PNN_DT_criteo_private_ad_cvr_v4_050_050_maskmerge_CL_dt_hyper
+dataset_id: criteo_private_ad_cvr_v4_050_050_maskmerge_dt
+
+# 数据集配置
+dataset_config:
+    criteo_private_ad_cvr_v4_050_050_maskmerge_dt:
+        data_format: parquet
+        data_root: /work/gm85/m85000/FuxiCTR/data/mask_merge/
+        feature_cols:
+            # 共计使用 18 个不受限制的非个性化 + 32 个受限制的个性化特征  = 50 特征
+            - { active: false, dtype: str, name: id, type: categorical }
+            # 非个性化分类特征 Ad + context: 13 int + 1 seq + 4 float = 18 features
+            # contextual features 8 + kv ad feature 8
+            - active: true
+              dtype: int
+              name: [ campaign_id, display_order, publisher_id, features_ctx_not_constrained_0, features_ctx_not_constrained_1, features_ctx_not_constrained_4, features_ctx_not_constrained_5, features_ctx_not_constrained_6, features_ctx_not_constrained_7, features_kv_not_constrained_1, features_kv_not_constrained_2, features_kv_not_constrained_3, features_kv_not_constrained_8 ]
+              type: categorical
+            - { active: true, dtype: str, max_len: 10, name: features_ctx_not_constrained_2, padding: pre,
+                splitter: ^, type: sequence }
+            - active: true
+              dtype: float
+              name: [ features_kv_not_constrained_5, features_kv_not_constrained_6, features_kv_not_constrained_7, features_ctx_not_constrained_3 ]
+              type: categorical
+            # Ad-browser-user 个性化分类特征 - 1 str + 1 int + 30 float = 32 features
+            - {active: true, dtype: str, name: user_id, type: categorical}
+            - active: true
+              dtype: int
+              name: [ features_kv_bits_constrained_1 ]
+              type: categorical
+            - active: true
+              dtype: float
+              name: [ features_browser_bits_constrained_0, features_browser_bits_constrained_10, features_browser_bits_constrained_2, features_browser_bits_constrained_3, features_browser_bits_constrained_4, features_browser_bits_constrained_7, features_browser_bits_constrained_9, features_kv_bits_constrained_0, features_kv_bits_constrained_11, features_kv_bits_constrained_12, features_kv_bits_constrained_13, features_kv_bits_constrained_15, features_kv_bits_constrained_17, features_kv_bits_constrained_19, features_kv_bits_constrained_2, features_kv_bits_constrained_20, features_kv_bits_constrained_21, features_kv_bits_constrained_22, features_kv_bits_constrained_23, features_kv_bits_constrained_24, features_kv_bits_constrained_25, features_kv_bits_constrained_27, features_kv_bits_constrained_28, features_kv_bits_constrained_29, features_kv_bits_constrained_30, features_kv_bits_constrained_4, features_kv_bits_constrained_5, features_kv_bits_constrained_7, features_kv_bits_constrained_8, features_kv_bits_constrained_9 ]
+              type: categorical
+        feature_group_id: is_personalization
+        label_col: { dtype: float, name: is_click_landed }  # 修正：实际为Int32
+        min_categr_count: 10
+        test_data: /scratch/dliu2/FuxiCTR/datasets/CriteoPrivateAdCVRProcessed/test.parquet
+        train_data: /scratch/dliu2/FuxiCTR/datasets/CriteoPrivateAdCVRProcessed/train.parquet
+        valid_data: /scratch/dliu2/FuxiCTR/datasets/CriteoPrivateAdCVRProcessed/valid.parquet
+# 模型基础配置
+model_config:
+    FCN_PNN_DT_criteo_private_ad_cvr_v4_050_050_maskmerge_CL_dt_hyper:
+        model: DualTowerCL
+        model_id: FCN_PNN_DT_CL_criteo_private_ad_cvr_v4_050_050_maskmerge_dt_hyper
+        model_root: /work/gm85/m85000/FuxiCTR/slurm_logs/FCN_PNN_DT_CL_criteo_private_ad_cvr_v4_050_050_maskmerge_dt_hyper/
+        dataset_id: criteo_private_ad_cvr_v4_050_050_maskmerge_dt
+        debug_mode: false
+        metrics: [logloss, AUC]
+        monitor_mode: max
+        optimizer: adam
+        loss: binary_crossentropy
+        shuffle: true
+        task: binary_classification
+        early_stop_patience: 1
+        epochs: 100
+        learning_rate: 0.001
+        batch_size: 10000
+        seed: 2019
+        verbose: 0
+        save_best_only: true
+        use_tower_specific_monitoring: true        # 启用分塔监控
+        personalized_monitor_metric: "AUC_group_1.0"    # 个性化塔监控指标
+        non_personalized_monitor_metric: "AUC_group_2.0" # 非个性化塔监控指标
+        tower_patience: 1                         # 分塔早停耐心值
+        save_tower_models: true                   # 分别保存塔模型
+        personalization_feature_list: [ user_id,features_kv_bits_constrained_1,features_browser_bits_constrained_0,features_browser_bits_constrained_10,features_browser_bits_constrained_2,features_browser_bits_constrained_3,features_browser_bits_constrained_4,features_browser_bits_constrained_7,features_browser_bits_constrained_9,features_kv_bits_constrained_0,features_kv_bits_constrained_11,features_kv_bits_constrained_12,features_kv_bits_constrained_13,features_kv_bits_constrained_15,features_kv_bits_constrained_17,features_kv_bits_constrained_19,features_kv_bits_constrained_2,features_kv_bits_constrained_20,features_kv_bits_constrained_21,features_kv_bits_constrained_22,features_kv_bits_constrained_23,features_kv_bits_constrained_24,features_kv_bits_constrained_25,features_kv_bits_constrained_27,features_kv_bits_constrained_28,features_kv_bits_constrained_29,features_kv_bits_constrained_30,features_kv_bits_constrained_4,features_kv_bits_constrained_5,features_kv_bits_constrained_7,features_kv_bits_constrained_8,features_kv_bits_constrained_9 ]
+        personalization_field: is_personalization
+        personalized_model_type: DCNv3
+        personalized_model_params:
+            embedding_dim: 16
+            num_heads: 4
+            num_deep_cross_layers: 4
+            num_shallow_cross_layers: 4
+        non_personalized_model_type: PNN
+        non_personalized_model_params:
+          embedding_dim: 16
+          hidden_units: [ 1000, 1000 ]
+        cl_loss_weight: 0.0  # CL总损失权重
+        low_memory: false
+        # CL损失组件权重
+        knowledge_distillation_loss_weight: 0.0  # 知识蒸馏损失（核心）
+        distance_loss_weight: 0.0  # 距离损失（备用）
+        group_aware_loss_weight: 0.0  # 组感知损失（针对非个性化用户优化）
+        feature_alignment_loss_weight: 0.0  # 特征对齐损失（可选）
+        field_uniformity_loss_weight: 0.0   # 字段均匀性损失（可选）
+        temperature: 4.0  # 知识蒸馏温度参数
+        # === 特征级对比学习配置 ===
+        use_feature_level_cl: True  # 是否启用特征级CL
+        training_mode: sequential  # 训练模式：sequential 或 parallel
+        sequential_warmup_epochs: 5
+        embedding_regularizer: 1.0e-05
+
+tuner_space:
+    cl_loss_weight: [1.0]
+    embedding_regularizer: [1.0e-05]
+    sequential_warmup_epochs: [5]
+    training_mode: [sequential, parallel]
+#    training_mode: [sequential]
+    knowledge_distillation_loss_weight: [0.0, 1.0]
+    field_uniformity_loss_weight: [0.0, 0.1, 1.0]
+    distance_loss_weight: [10.0, 0.0, 1.0]

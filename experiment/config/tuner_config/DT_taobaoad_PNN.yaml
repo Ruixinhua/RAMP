@@ -1,0 +1,108 @@
+# CL参数优化
+
+base_config: ./
+base_expid: PNN_PNN_DT_CL_para_taobaoad_x1_006_070_010_per_mask_020_mixed_01_1893e8ce
+dataset_id: taobaoad_x1_006_070_010_per_mask_020_mixed
+
+# 数据集配置
+dataset_config:
+  taobaoad_x1_006_070_010_per_mask_020_mixed:
+      data_format: parquet
+      data_root: /scratch/dliu2/FuxiCTR/data/Taobao
+      feature_cols:
+      - {active: true, dtype: int, name: group_id, preprocess: copy_from(userid), remap: false,
+          type: meta}
+      -   active: true
+          dtype: str
+          name: [adgroup_id, cate_id, campaign_id, customer, brand, pid, btag]
+          type: categorical
+      -   active: true
+          dtype: int
+          fill_na: 0
+          name: [userid, cms_segid, cms_group_id, final_gender_code, age_level, pvalue_level,
+              shopping_level, occupation, new_user_class_level]
+          type: categorical
+      - {active: true, dtype: float, name: price, type: numeric}
+      - {active: true, dtype: str, max_len: 50, name: cate_his, padding: pre, share_embedding: cate_id,
+          splitter: ^, type: sequence}
+      - {active: true, dtype: str, max_len: 50, name: brand_his, padding: pre, share_embedding: brand,
+          splitter: ^, type: sequence}
+      - {active: true, dtype: str, max_len: 50, name: btag_his, padding: pre, share_embedding: btag,
+          splitter: ^, type: sequence}
+      label_col: {dtype: float, name: clk}
+      feature_group_id: is_personalization
+      min_categr_count: 10
+      test_data: /scratch/dliu2/FuxiCTR/datasets/TaobaoAd/processed/test.csv
+      train_data: /scratch/dliu2/FuxiCTR/datasets/TaobaoAd/processed/train.csv
+      valid_data: /scratch/dliu2/FuxiCTR/datasets/TaobaoAd/processed/valid.csv
+
+# 模型基础配置
+model_config:
+    PNN_PNN_DT_CL_para_taobaoad_x1_006_070_010_per_mask_020_mixed_01_1893e8ce:
+        model: DualTowerCL
+        model_id: PNNDT_taobaoad_x1_006_070_010_per_mask_020_mixed
+        model_root: /scratch/dliu2/FuxiCTR/slurm_logs/PNNDT_taobaoad_x1_006_070_010_per_mask_020_mixed/
+        dataset_id: taobaoad_x1_006_070_010_per_mask_020_mixed
+        debug_mode: false
+        metrics: [logloss, AUC]
+        monitor_mode: max
+        optimizer: adam
+        loss: binary_crossentropy
+        shuffle: true
+        task: binary_classification
+        early_stop_patience: 2
+        epochs: 100
+        learning_rate: 0.001
+        batch_size: 8192
+        seed: 2019
+        verbose: 0
+        workers: 3
+        save_best_only: true
+        use_tower_specific_monitoring: true        # 启用分塔监控
+        personalized_monitor_metric: "AUC_group_1.0"    # 个性化塔监控指标
+        non_personalized_monitor_metric: "AUC_group_2.0" # 非个性化塔监控指标
+        tower_patience: 2                         # 分塔早停耐心值
+        save_tower_models: true                   # 分别保存塔模型
+        personalization_feature_list: [ userid, cms_segid, cms_group_id, final_gender_code, age_level, pvalue_level, shopping_level, occupation, new_user_class_level ]
+        personalization_field: is_personalization
+        personalized_model_type: PNN
+        personalized_model_params:
+            batch_norm: false
+            embedding_dim: 32
+            embedding_dropout: 0
+            embedding_regularizer: 5.0e-06
+            hidden_activations: relu
+            hidden_units: [512, 256]
+            monitor: {AUC: 1}
+            net_dropout: 0
+            net_regularizer: 0
+        non_personalized_model_type: PNN
+        non_personalized_model_params:
+            batch_norm: false
+            embedding_dim: 32
+            embedding_dropout: 0
+            embedding_regularizer: 5.0e-06
+            hidden_activations: relu
+            hidden_units: [512, 256]
+            monitor: {AUC: 1}
+            net_dropout: 0
+            net_regularizer: 0
+        training_mode: "parallel"  # 并行训练模式
+        cl_loss_weight: 2.0  # CL总损失权重
+        # CL损失组件权重
+        knowledge_distillation_loss_weight: 1.0  # 知识蒸馏损失（核心）
+        group_aware_loss_weight: 0.0  # 组感知损失（针对非个性化用户优化）
+        feature_alignment_loss_weight: 0.0  # 特征对齐损失（可选）
+        field_uniformity_loss_weight: 0.0   # 字段均匀性损失（可选）
+        distance_loss_weight: 0.0  # 距离损失（备用）
+        temperature: 4.0  # 知识蒸馏温度参数
+        # === 特征级对比学习配置 ===
+        use_feature_level_cl: False  # 是否启用特征级CL
+
+tuner_space:
+    # 核心参数搜索
+    cl_loss_weight: [1.0, 2.0]
+    knowledge_distillation_loss_weight: [0.0, 0.5, 1.0]
+#    group_aware_loss_weight: [0.0, 0.5, 1.0]
+    field_uniformity_loss_weight: [0.0, 0.5, 1.0]
+    distance_loss_weight: [0.0, 0.5, 1.0]
