@@ -88,7 +88,28 @@ The backbone choices exposed in this release are `PNN`, `DCNv3`, and `FinalNet`.
 
 ## Citation
 
-The final ACM citation and DOI will be added after the ICTIR 2026 proceedings metadata is finalized.
+Publication metadata:
+
+- DOI: [10.1145/3805713.3820399](https://doi.org/10.1145/3805713.3820399)
+- Conference: Proceedings of the 2026 International ACM SIGIR Conference on Innovative Concepts and Theories in Information Retrieval (ICTIR)
+- Short name: ICTIR '26
+- Date and location: July 25, 2026, Melbourne, VIC, Australia
+- ISBN: 979-8-4007-2600-2/2026/07
+- Copyright year: 2026
+- License in proceedings: CC BY
+
+BibTeX template:
+
+```bibtex
+@inproceedings{ramp2026,
+  title = {RAMP: Robust Ad Recommendation Under Limited Personalized-Feature Availability via Masking and Alignment Pathways},
+  booktitle = {Proceedings of the 2026 International ACM SIGIR Conference on Innovative Concepts and Theories in Information Retrieval (ICTIR)},
+  year = {2026},
+  address = {Melbourne, VIC, Australia},
+  doi = {10.1145/3805713.3820399},
+  isbn = {979-8-4007-2600-2/2026/07}
+}
+```
 
 ## License
 
