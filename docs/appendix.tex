@@ -1,0 +1,207 @@
+\appendix
+\section*{Appendix}
+% \section{Algorithm for DTCN} \label{sec:pseudo-code}
+% \begin{algorithm}
+% \caption{DTCN Training Algorithm}
+% \label{alg:dtcn}
+% \begin{algorithmic}[1]
+% \Require Training dataset $\mathcal{D} = \{(x_i, y_i)\}_{i=1}^{N}$, learning rate $\eta$, batch size $B$, \#Non-PER samples in a batch $N_{np}$, model embedding layer $\mathcal{E}$, feature Interaction networks $FI_A$, $FI_B$, $FI_{NP}$, prediction layers $PL_A$, $PL_B$, $PL_{NP}$
+% \Ensure Optimized model parameters $\theta$
+
+% % \State Initialize all model parameters randomly
+% \For{each epoch}
+%     \For{each mini-batch $\mathcal{B} = \{(x_i, y_i)\}_{i=1}^{B}$ in $\mathcal{D}$}
+%         % \State \Comment{\textbf{Step 1: Embedding Layer}}
+%         \State $\mathbf{E} \gets \mathcal{E}(x_i)$ for all $i \in \mathcal{B}$ \Comment{Embedding Layer}
+%         % \State Pad personalized embeddings for non-personalized samples (freeze padded weights)
+%
+%         % \State \Comment{\textbf{Step 2: Dual-Tower Feature Interaction}}
+%         \State $\mathbf{H}_A \gets FI_A(\mathbf{E})$ \Comment{Tower A: FI PER Samples}
+%         \State $\mathbf{H}_B \gets FI_B(\mathbf{E})$ \Comment{Tower B: FI Non-PER Samples}
+%
+%         % \State \Comment{\textbf{Step 3: Dual-Tower Predictions}}
+%         \State $\hat{y}_{PL_A} \gets PL_A(\mathbf{H}_A)$ \Comment{Tower A Prediction}
+%         \State $\hat{y}_{PL_B} \gets PL_B(\mathbf{H}_B)$ \Comment{Tower B Prediction}
+%         \\
+%         % \State \Comment{\textbf{Step 4: Mask-based Output Selection}}
+%         \State Personalized mask: $m_i \gets \mathbb{I}_{\text{personalized}}(x_i)$ for all $i \in \mathcal{B}$
+%         \State $\mathbf{m}_{\text{per}} \gets (m_1, m_2, \ldots, m_B)^T$
+%         \State $\hat{y}_A \gets \hat{y}_{PL_A} \odot \mathbf{m}_{\text{per}}$ \Comment{Tower A Masked Prediction}
+%         \State $\hat{y}_B \gets \hat{y}_{PL_B} \odot (\mathbf{1} - \mathbf{m}_{\text{per}})$ \Comment{Tower B Masked Prediction}
+%
+%         % \State \Comment{\textbf{Step 5: Foundation Prediction}}
+%         \State $\hat{y}_{\mathbb{F}} \gets \hat{y}_A + \hat{y}_B$ \Comment{Fused Prediction}
+%         \\
+%         % \State \Comment{\textbf{CL for non-personalized samples}}
+%         \State $x^{np}_i \gets x_i$ if $m_i = 1$ \Comment{CL on Non-PER Samples}
+%         \State $\mathbf{E}^{np} \gets \mathcal{E}(x^{np}_i)$ \Comment{Reuse embedding layer}
+%         \State $\mathbf{H}_{NP} \gets FI_{NP}(\mathbf{E}^{np})$ \Comment{Separate FI for contrastive view}
+%         \State $\hat{y}_{np} \gets PL_{NP}(\mathbf{H}_{NP})$
+%         \\
+%         % \State \Comment{\textbf{Step 7: Compute Distance Loss}}
+%         \State $\mathcal{D}_{\text{dis}} \gets \frac{1}{B}\sum_{i=1}^{B} \|\hat{y}_{\mathbb{F},i} - \hat{y}_{np,i}\|_1$ \Comment{L1 distance}
+%         % \State \Comment{\textbf{Step 8: Compute Losses}}
+%         \State $\mathcal{L}_{\text{base}} \gets \frac{1}{B} \sum_{i=1}^{B} \text{BCE}(\hat{y}_{\mathbb{F},i}, y_i)$
+%         \State $\mathcal{L}_{\text{dis}} \gets -\frac{1}{N_{np}} \sum_{i=1}^{N_{np}} [y_i \log(\mathcal{D}_{\text{dis},i}) + (1-y_i) \log(1-\mathcal{D}_{\text{dis},i})]$
+%         \State $\mathcal{L}_{\text{overall}} \gets \alpha \cdot \mathcal{L}_{\text{base}} + \beta \cdot \mathcal{L}_{\text{dis}}$
+%
+%         % \State \Comment{\textbf{Step 9: Backpropagation and Update}}
+%         % \State Compute gradients: $\nabla_{\theta} \mathcal{L}_{\text{overall}}$
+%         \State Update all parameters: $\theta \gets \theta - \eta \cdot \nabla_{\theta} \mathcal{L}_{\text{overall}}$
+%     \EndFor
+% \EndFor
+% \State \Return Trained model parameters $\theta$
+% \end{algorithmic}
+% \end{algorithm}
+
+% We provide the pseudo-code of the DTCN training procedure in Algorithm~\ref{alg:dtcn}. The algorithm illustrates the key components of our framework: the dual-tower architecture with output masking and the contrastive learning module for non-personalized prediction enhancement. During inference, all the logits and predictions are only produced from the dual-tower component. The contrastive learning tower acts as the non-trivial auxiliary steering power during training, but is not involved in inference.
+
+\section{Feature Importance Analysis}
+\label{sec:feature_importance}
+To complement the robustness analysis, we conduct a comprehensive feature importance analysis to identify the most critical features for prediction performance across different datasets, offering empirical evidence for the feature elimination strategy used for our robustness evaluation. Without the loss of generality, we employ a leave-one-out ablation approach using PNN as the backbone model to measure feature importance. For each feature, we train the model with that specific feature eliminated while keeping all other features intact, and measure the resulting performance degradation on the test set. Results are shown in Table~\ref{tab:feature_importance}.
+
+Results reveal divergent patterns. For Avazu, the most impactful features are all personalized device-related identifiers (\textbf{device\_ip}, \textbf{device\_model}, \textbf{device\_id}). TaobaoAd exhibits the strongest dependence on personalized features, where \textbf{userid} alone contributes 3.84\% AUC, significantly outweighing other features. In contrast, CriteoPrivateAd shows a more balanced feature importance distribution. However, we still observe that personalized identifiers consistently dominate the top of importance rankings, underscoring the challenge of maintaining prediction accuracy in privacy-preserving scenarios where such features become unavailable\footnote{Full list reporting whether a feature is personalized is available in our code repository.}.
+
+\begin{table}[h]
+    \centering
+    \small
+    \caption{Top 5 most important features for each dataset based on PNN ablation study. Personalized feature fields are marked with $\dagger$. $\Delta$AUC change indicates performance degradation when the feature is removed.}
+    \label{tab:feature_importance}
+    \begin{tabular}{l|l|c}
+    \hline
+    \textbf{Dataset} & \textbf{Feature Field Name} & \textbf{$\Delta{AUC}$(\%)} \\
+    \hline
+    \multirow{5}{*}{Avazu}
+    & device\_ip$^\dagger$ & -2.17 \\
+    & device\_model$^\dagger$ & -0.54 \\
+    & device\_id$^\dagger$ & -0.39 \\
+    & app\_id & -0.19 \\
+    & C14 & -0.13 \\
+    \hline
+    \multirow{5}{*}{TaobaoAd}
+    & userid$^\dagger$ & -3.84 \\
+    & cate\_id & -0.41 \\
+    & cate\_his$^\dagger$ & -0.28 \\
+    & adgroup\_id & -0.17 \\
+    & price & -0.12 \\
+    \hline
+    \multirow{5}{*}{CriteoPrivateAd}
+    & campaign\_id & -0.58 \\
+    & features\_ctx\_not\_constrained\_6 & -0.45 \\
+    & features\_ctx\_not\_constrained\_4 & -0.18 \\
+    & features\_kv\_bits\_constrained\_30$^\dagger$ & -0.09 \\
+    & features\_browser\_bits\_constrained\_10$^\dagger$ & -0.07 \\
+    \hline
+    \end{tabular}
+\end{table}
+
+\section{Training Efficiency Analysis}
+\label{sec:training_efficiency}
+To assess the practical overhead introduced by RAMP, we profile the training efficiency of RAMP against the backbone models (PNN, FINAL) and three knowledge distillation baselines (KD, PFD, HAPKD) across three public datasets. We measure the number of trainable parameters, mean wall-clock time per epoch, training throughput, and peak GPU memory consumption during training. We also report inference latency (mean forward-pass time per batch). All measurements are collected on a single NVIDIA Tesla H100 GPU with batch size 10{,}000. Results are summarized in Table~\ref{tab:training_efficiency}.
+
+\begin{table*}[h]
+    \centering
+    \small
+    \caption{Training efficiency comparison across datasets. \#Params denotes the number of trainable parameters (in millions). Epoch Time is the mean wall-clock time per training epoch (seconds). Throughput is the mean training throughput (thousand samples per second). GPU Mem is the peak GPU memory during training (MB). Inf. Lat. is the mean inference latency per batch (ms). ``---'' indicates measurements not available.}
+    \label{tab:training_efficiency}
+    \begin{tabular}{l|l|r|r|r|r|r}
+    \hline
+    \textbf{Dataset} & \textbf{Model} & \textbf{\#Params (M)} & \textbf{Epoch Time (s)} & \textbf{Throughput (K/s)} & \textbf{GPU Mem (MB)} & \textbf{Inf. Lat. (ms)} \\
+    \hline
+    \multirow{6}{*}{Avazu}
+    & PNN         & 120.8 & 270.9 & 238.8 & 2{,}368 & 2.20 \\
+    & FINAL       & 122.0 & 290.5 & 222.7 & 2{,}599 & 2.85 \\
+    & KD          & 122.0 & 312.1 & 207.3 & 3{,}439 & 4.81 \\
+    & PFD         & 243.9 & 365.4 & 177.1 & 4{,}726 & 4.79 \\
+    & HAPKD       & 243.9 & 365.7 & 176.9 & 4{,}757 & 4.77 \\
+    & RAMP (Ours)  & 123.9 & 330.9 & 195.5 & 3{,}319 & 4.61 \\
+    \hline
+    \multirow{6}{*}{TaobaoAd}
+    & PNN         &  43.5 & 316.8 & 146.8 &   934 & 4.73 \\
+    & FINAL       &  43.9 & 320.9 & 144.9 & 1{,}058 & 4.84 \\
+    & KD          &  43.9 & 340.7 & 136.5 & 1{,}364 & 7.34 \\
+    & PFD         &  87.9 & 384.2 & 121.0 & 1{,}941 & 7.33 \\
+    & HAPKD       &  87.9 & 390.0 & 119.2 & 1{,}998 & 7.33 \\
+    & RAMP (Ours)  &  45.0 & 387.1 & 120.1 & 1{,}334 & 7.16 \\
+    \hline
+    \multirow{6}{*}{CriteoPrivateAd}
+    & PNN         & 121.9 & 307.2 & 199.9 & 2{,}583 & 5.02 \\
+    & FINAL       & 123.1 & 310.9 & 197.6 & 2{,}495 & 4.94 \\
+    & KD          & 123.1 & 355.7 & 172.9 & 3{,}441 & 8.72 \\
+    & PFD         & 246.1 & 501.5 & 122.5 & 4{,}804 & 8.71 \\
+    & HAPKD         & 246.1 & 501.5 & 122.5 & 4{,}868 & 8.79 \\
+    & RAMP (Ours)  & 125.7 & 466.8 & 131.6 & 2{,}951 & 8.56 \\
+    \hline
+    \end{tabular}
+\end{table*}
+
+\textbf{Analysis.} RAMP~introduces moderate training overhead compared to a single-model backbone. On Avazu, RAMP incurs a $\sim$22\% increase in epoch time relative to PNN (330.9\,s vs.\ 270.9\,s) and a $\sim$14\% increase relative to FINAL (330.9\,s vs.\ 290.5\,s), while requiring comparable parameter counts (123.9M vs.\ 120.8M/122.0M). In terms of peak GPU memory, RAMP consumes 40\% more memory than a single backbone (3{,}319\,MB vs.\ 2{,}368\,MB on Avazu) due to the dual-tower architecture and the NP pathway active during training. Crucially, PFD and HAPKD consistently require nearly \emph{double} the parameters (243.9M on Avazu) and the highest GPU memory ($\geq$4{,}726\,MB), as they maintain both a full teacher and a full student model. KD also retains a full teacher--student pair during training (243.9M total), though only the student parameters (122.0M) are updated. RAMP's overhead is lower than all three KD baselines in both parameter count and GPU memory while achieving superior non-personalized prediction accuracy. At inference time, only the dual-tower component is used (the NP pathway is discarded), resulting in inference latency comparable to KD and PFD (4.61\,ms vs.\ 4.81/4.79\,ms on Avazu) and only marginally higher than the single backbone (2.20\,ms for PNN). This overhead is acceptable for online serving, where latency budgets are typically in the tens of milliseconds.
+
+\section{Necessity of the NP-Only Pathway}
+\label{sec:np_pathway_necessity}
+A natural question is whether the dedicated NP pathway is necessary, or whether a simpler consistency regularizer (e.g., directly adding an L2 or KL alignment loss between the two existing towers) could achieve comparable gains. The PP results in Table~\ref{tab:model_variants_results} already confirm that the dual-tower design of the personalized pathway provides meaningful improvements over single-tower baselines. However, RAMP consistently surpasses PP across all backbone--dataset combinations, with gains ranging from +0.06\% to +0.75\% AUC. This gap demonstrates that the dedicated NP pathway, which maintains its own feature interaction parameters and is trained exclusively on non-personalized samples, captures complementary knowledge that a simple inter-tower regularizer cannot. In particular, the NP pathway creates an independent capacity bottleneck optimized solely for the restricted-feature regime, forcing it to develop compact, informative representations of non-personalized features. A regularizer applied to the existing towers, by contrast, would constrain their capacity to specialize in their respective regimes and risk degrading personalized-tower performance. The consistent improvement pattern across architectures (PNN, FCN, FINAL) further confirms that this benefit is general and not backbone-specific.
+
+\section{Guidelines for Reproduction}
+\label{sec:reproduction}
+\begin{table}[h]
+    \centering
+    \small
+    \caption{Used feature fields for 3 public datasets. Bold font indicates non-personalized features.}
+    \label{tab:feature_list}
+    \begin{tabular}{l|>{\raggedright\arraybackslash}p{6cm}}
+    \hline
+    \textbf{Dataset} & \textbf{Feature Fields}\\
+    \hline
+    Avazu & [\textbf{banner\_pos}, \textbf{site\_id}, \textbf{site\_domain}, \textbf{site\_category}, \textbf{app\_id}, \textbf{app\_domain}, \textbf{app\_category}, \textbf{hour}, \textbf{weekday}, \textbf{weekend}, \textbf{C1}, \textbf{C14}, \textbf{C15}, \textbf{C16}, \textbf{C17}, \textbf{C18}, \textbf{C19}, \textbf{C20}, \textbf{C21}, device\_ip, device\_id, device\_model, device\_type, device\_conn\_type] \\
+    \hline
+    TaobaoAd & [\textbf{adgroup\_id}, \textbf{cate\_id}, \textbf{campaign\_id}, \textbf{customer}, \textbf{brand}, \textbf{pid}, \textbf{btag}, \textbf{price}, cms\_segid, cms\_group\_id, userid, final\_gender\_code, age\_level, pvalue\_level, shopping\_level, occupation, new\_user\_class\_level, cate\_his, brand\_his, btag\_his] \\
+    \hline
+    CriteoPrivateAd & [\textbf{campaign\_id}, \textbf{display\_order}, \textbf{publisher\_id},  \textbf{features\_kv\_not\_constrained\_1{\textasciitilde}7}, \textbf{features\_ctx\_not\_constrained\_0{\textasciitilde}7}, user\_id, features\_kv\_bits\_constrained\_0{\textasciitilde}24, features\_browser\_bits\_constrained\_0{\textasciitilde}6] \\
+    \hline
+    \end{tabular}
+\end{table}
+
+\begin{table*}[t]
+    \centering
+    \small
+    \caption{Hyperparameter configurations for RAMP on different datasets.}
+    \label{tab:model_hyperparams}
+    \begin{tabular}{l|l|c|c|l}
+    \hline
+    \textbf{Dataset} & \textbf{Backbone} & \textbf{$\beta$} & \textbf{Emb. Reg.} & \textbf{Model-Specific Parameters} \\
+    \hline
+    \multirow{6}{*}{Avazu} & \multirow{6}{*}{FINAL} & \multirow{6}{*}{40} & \multirow{6}{*}{1e-05} &  embedding\_dim=32, \\
+    & & & & \textbf{$FI_A$-PER-PER: FINAL}, block\_type=2B,  \\
+    & & & & block1\_hidden\_units=[800], block1\_dropout=0.2, \\
+    & & & & block2\_hidden\_units=[800,800], block2\_dropout=0.3 \\
+    & & & & \textbf{$FI_B$($FI_{NP}$)-Non PER: FINAL}, block\_type=1B, \\
+    & & & & block1\_hidden\_units=[800], block1\_dropout=0.2, \\
+    \hline
+    \multirow{8}{*}{TaobaoAd} & \multirow{3}{*}{PNN} & \multirow{8}{*}{150} & \multirow{8}{*}{0.05} & embedding\_dim=16, \\
+    & & & & \textbf{$FI_A$-PER-PER: PNN}, hidden\_units=[512, 256] \\
+    & & & & \textbf{$FI_B$($FI_{NP}$)-Non PER: PNN}, hidden\_units=[512, 256] \\
+    \cline{2-2}\cline{5-5}
+    & \multirow{5}{*}{FCN} & & & embedding\_dim=32,  \\
+    & & & & \textbf{$FI_A$-PER-PER: FCN}, num\_heads=1, num\_deep\_cross\_layers=4, \\
+    & & & & num\_shallow\_cross\_layers=4 \\
+    & & & & \textbf{$FI_B$($FI_{NP}$)-Non PER-Non PER: FCN}, num\_heads=1, num\_deep\_cross\_layers=4, \\
+    & & & & num\_shallow\_cross\_layers=4 \\
+    \hline
+    \multirow{3}{*}{CriteoPrivateAd} & \multirow{3}{*}{PNN} & \multirow{3}{*}{80} & \multirow{3}{*}{1e-05} & embedding\_dim=16, \\
+    & & & & \textbf{$FI_A$-PER-PER: PNN}, hidden\_units=[1000, 1000] \\
+    & & & & \textbf{$FI_B$($FI_{NP}$)-Non PER-Non PER: PNN}, hidden\_units=[1000, 1000] \\
+    \hline
+    \end{tabular}
+\end{table*}
+
+To facilitate the reproducibility of RAMP, in addition to providing the FuxiCTR\footnote{\url{https://github.com/reczoo/FuxiCTR}}-based code implementation shared in the abstract, we hereby provide more details on our experimental setup. We run all our experiments on one NVIDIA Tesla A100 GPU to mitigate the impact from different hardware. The hyper-parameters reported in Section~\ref{subsec:implementation_details} are the optimal results obtained via an extensive grid search process. As the final step, we also fix the random seeds used for the training/validation/test of each dataset.
+
+In this research, we experiment on CTR datasets including Avazu and TaobaoAd, and CVR datasets including CriteoPrivateAd and a private industry dataset. Intuitively, a key step to initiate our exploration on the prediction performance of personalized and non-personalized data is to distinguish personalized and non-personalized features. The industry dataset contains a binary variable named \textit{is\_personalization}. All features with a null value under is\_personalization = 0 are recognized as personalized features, accounting for 30 out of 60 feature fields in the dataset. For the other 3 datasets, we list the feature fields used for experimentation in Table~\ref{tab:feature_list}. Fields in bold are marked as non-personalized features.
+
+To ensure reproducibility, we also provide the detailed hyperparameter configurations for RAMP across different datasets in Table~\ref{tab:model_hyperparams}. The configurations include the backbone model architecture, distance loss weight ($\beta$), embedding regularizer, and model-specific parameters for both personalized and non-personalized towers. These parameters were determined through extensive grid search and represent the optimal configurations that achieve the best performance on each dataset.
+
+\section{Production A/B Test Configuration}
+\label{sec:ab_test}
+We conducted an online A/B test on CVR prediction to evaluate the effectiveness of our approach. The proposed method (RAMP) was deployed to 15\% of the production traffic. In the treatment group, RAMP was applied to non-personalized traffic, while personalized traffic continued to be served by the baseline model (MaskNet). The experiment ran for two weeks under stable production conditions.
+
+The primary evaluation metric is total advertising value (TAV), defined as the number of conversions multiplied by the average bid per conversion. Compared with the baseline, the proposed approach achieved a +3.5\% improvement in TAV, demonstrating its effectiveness in enhancing monetization performance under feature-constrained settings.

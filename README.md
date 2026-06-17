@@ -18,6 +18,8 @@ model_zoo/FinalNet/          FINAL/FinalNet baseline/backbone
 experiment/run_expid.py      Main experiment entry point
 experiment/config/           Paper experiment and baseline configurations
 scripts/common/              Dataset masking and result aggregation helpers
+demo_data/raw/ramp_demo/     Tiny synthetic data for smoke-test reproduction
+docs/                        Appendix source and demo instructions
 ```
 
 ## Installation
@@ -58,14 +60,28 @@ The public experiment configs list the feature fields used for Avazu, TaobaoAd, 
 
 Use `experiment/run_expid.py` as the main entry point.
 
-Example:
+Runnable demo:
 
 ```bash
-python experiment/run_expid.py \
-  --config experiment/config/avazu_wisteria \
+PYTHONPATH=. python experiment/run_expid.py \
+  --config config/demo \
+  --expid ramp_demo_pnn \
+  --gpu -1 \
+  --profile 0
+```
+
+The demo uses a tiny synthetic dataset and is intended to verify the RAMP training path, not to reproduce paper metrics. See `docs/demo.md` for details.
+
+Paper config example:
+
+```bash
+PYTHONPATH=. python experiment/run_expid.py \
+  --config config/avazu_wisteria \
   --expid FINAL_FINAL_DT_avazu_x4_050_050_maskmerge_CL_hyper \
   --gpu 0
 ```
+
+`experiment/run_expid.py` changes into the `experiment` directory internally, so `--config` paths are relative to `experiment/`.
 
 Useful config groups:
 
@@ -75,6 +91,10 @@ Useful config groups:
 - `experiment/config/tuner_config/`
 
 Baseline PNN masking configs are also provided directly under `experiment/config/`.
+
+## Appendix
+
+The Overleaf appendix source is available in `docs/appendix.tex`. It includes the feature-importance table, training-efficiency table, NP-only pathway discussion, reproduction settings, and production A/B test configuration.
 
 ## Implementation Notes
 

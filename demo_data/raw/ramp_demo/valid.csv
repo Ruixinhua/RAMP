@@ -1,0 +1,13 @@
+click,is_personalization,user_id,device_id,age_bucket,context_id,item_id,price,hour
+1,1,u21,d21,adult,search,item_a,0.89,h09
+0,1,u22,d22,senior,browse,item_b,0.23,h11
+1,1,u23,d23,young,email,item_c,0.81,h18
+0,1,u24,d24,adult,search,item_d,0.30,h14
+1,1,u25,d25,young,browse,item_a,0.74,h20
+0,1,u26,d26,senior,email,item_b,0.15,h08
+1,2,unknown,unknown,unknown,search,item_a,0.87,h09
+0,2,unknown,unknown,unknown,browse,item_b,0.18,h11
+1,2,unknown,unknown,unknown,email,item_c,0.79,h18
+0,2,unknown,unknown,unknown,search,item_d,0.34,h14
+1,2,unknown,unknown,unknown,browse,item_a,0.72,h20
+0,2,unknown,unknown,unknown,email,item_b,0.19,h08

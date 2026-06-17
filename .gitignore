@@ -113,6 +113,7 @@ venv.bak/
 _build
 checkpoints
 *.csv
+!demo_data/raw/ramp_demo/*.csv
 
 # Local project files
 .DS_Store
@@ -130,6 +131,7 @@ outputs/
 runs/
 checkpoints/
 predictions/
+demo_runs/
 wandb/
 *.parquet
 *.npz

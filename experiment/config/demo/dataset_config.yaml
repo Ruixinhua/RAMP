@@ -1,0 +1,21 @@
+ramp_demo:
+    data_format: csv
+    data_root: ../demo_runs/processed
+    train_data: ../demo_data/raw/ramp_demo/train.csv
+    valid_data: ../demo_data/raw/ramp_demo/valid.csv
+    test_data: ../demo_data/raw/ramp_demo/test.csv
+    rebuild_dataset: true
+    min_categr_count: 1
+    feature_group_id: is_personalization
+    feature_cols:
+        - {active: true, dtype: int, name: is_personalization, remap: false, type: categorical}
+        - active: true
+          dtype: str
+          name: [context_id, item_id, hour]
+          type: categorical
+        - {active: true, dtype: float, name: price, type: numeric}
+        - active: true
+          dtype: str
+          name: [user_id, device_id, age_bucket]
+          type: categorical
+    label_col: {dtype: float, name: click}

@@ -1,0 +1,58 @@
+Base:
+    model_root: ../demo_runs/checkpoints
+    debug_mode: false
+    metrics: [AUC, logloss]
+    monitor: {AUC: 1}
+    monitor_mode: max
+    optimizer: adam
+    loss: binary_crossentropy
+    shuffle: true
+    task: binary_classification
+    early_stop_patience: 2
+    epochs: 2
+    learning_rate: 0.01
+    batch_size: 8
+    num_workers: 0
+    seed: 2026
+    verbose: 0
+    save_best_only: true
+    save_checkpoints: false
+    reduce_lr_on_plateau: false
+    embedding_regularizer: 0
+    net_regularizer: 0
+
+ramp_demo_pnn:
+    model: DualTowerCL
+    dataset_id: ramp_demo
+    personalized_model_type: PNN
+    personalized_model_params:
+        embedding_dim: 4
+        hidden_units: [16, 8]
+        hidden_activations: ReLU
+        batch_norm: false
+        dropout_rates: 0
+    non_personalized_model_type: PNN
+    non_personalized_model_params:
+        embedding_dim: 4
+        hidden_units: [16, 8]
+        hidden_activations: ReLU
+        batch_norm: false
+        dropout_rates: 0
+    personalization_feature_list: [user_id, device_id, age_bucket]
+    personalization_field: is_personalization
+    use_mask_for_all: true
+    personalized_loss_weight: 1.0
+    non_personalized_loss_weight: 1.0
+    personalized_model_use_all_data: false
+    non_personalized_model_use_all_data: true
+    use_tower_specific_monitoring: false
+    save_tower_models: false
+    training_mode: parallel
+    cl_loss_weight: 0.1
+    distance_loss_weight: 0.1
+    knowledge_distillation_loss_weight: 0.0
+    group_aware_loss_weight: 0.0
+    feature_alignment_loss_weight: 0.0
+    field_uniformity_loss_weight: 0.0
+    temperature: 4.0
+    use_feature_level_cl: false
